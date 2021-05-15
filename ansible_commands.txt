@@ -1,0 +1,79 @@
+Bring up all 3 ansible instances-1 master 2 nodes
+-ifconfig to check all have 3 d/f IP's
+
+--Check whether ping is working from master to client machines
+
+To do dns mapping locally, instead of using IP we can mention hostname in front of IP so that it will be easy to remember
+vi /etc/hosts
+192.168.56.102 u64-ansible-node1
+192.168.56.103 u64-ansible-node2
+
+
+
+--To Enable passwordless connection between master and node1--
+login to master
+sudo su to switch to root user /root
+ssh-keygen --to generate keys
+copy it to your client node using below command
+
+ssh-copy-id vagrant@u64-ansible-node1
+
+--To Enable passwordless connection between master and node2, just to keep two different user, node1- vagrant and node2-ansible_user
+adduser ansible_user  
+pwd-ansible_user
+
+From master, root user execute below command
+ssh-copy-id ansible_user@u64-ansible-node2
+ansible_user
+
+--To install ansible only on master node
+sudo apt update
+sudo apt install software-properties-common -y
+sudo apt-add-repository --yesansible all -a "uptime" -u root 
+ansible all -a "df -h" -u root
+
+ansible all -m user -a "name=john password=john" -b   -- it will fail for 2 node because ansible_user is not part of sudoers, use below command to add list of sudoers
+  --b means to execute command via sudoers
+usermod -G sudo ansible_user
+ansible all -m user -a "name=john password=john" -b  --now it will pass for 2nd node as well
+
+Playbook:yaml format
+---
+- hosts: all
+  tasks:
+    - name: create a file
+      file:
+        path: /tmp/myfile
+        state: touch
+
+
+ansible-playbook test-playbook.yaml   -- to run yaml file
+ansible-playbook test-playbook.yaml --limit dev,test
+
+ --update ppa:ansible/ansible
+sudo apt install ansible -y
+
+ansible --version
+
+--To make node accessible via ansible ping, we need to make below entry
+vi /etc/ansible/hosts
+u64-ansible-node1 ansible_ssh_user=vagrant
+#u64-ansible-node2 ansible_ssh_user=ansible_user
+192.168.56.103 ansible_ssh_user=ansible_user
+
+ansible -m ping all
+ansible -m ping ansible-node1   --m stands for module, to be executed on master
+ansible -a hostname all
+ansible -a date all  --a means attributes, command to be executed on client and return the output to master
+ansible -a "mkdir ~/test" all   -- to execute the same command across servers, it will be executed in parallel
+
+--All the -m or playbook commands are idempotence but -a commands are not idempotence, -a command wil throw error if we try to create directory again.
+
+--If passwordless connection is not working ansible will fail, above command
+
+
+Module command
+ansible -m setup all
+ansible -m setup -a "filter=*ipv4*" all
+ansible all -m setup -a "filter=*ipv4*
+
